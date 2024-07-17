@@ -2,6 +2,7 @@ import os
 import pandas as pd
 from PIL import Image
 from matplotlib import pyplot as plt
+import numpy as np
 
 import torch
 from torch.utils.data import Dataset
@@ -10,7 +11,7 @@ from torch.utils.data import random_split
 from torchvision import transforms as T
 from torchvision.transforms import ToTensor, InterpolationMode
 from torchvision.transforms.functional import adjust_contrast, adjust_brightness
-
+from torch.utils.data import Subset
 
 # helper class for random distortion
 class RandomDistortion(torch.nn.Module):
@@ -54,8 +55,8 @@ augmentation_transforms = T.Compose([
 
 # transforms for vit
 vit_transforms = T.Compose([
-    T.Resize([518], interpolation=InterpolationMode.BICUBIC),
-    T.CenterCrop([518]),
+    T.Resize([384], interpolation=InterpolationMode.BICUBIC),
+    T.CenterCrop([384]),
     T.Normalize(
         mean=[0.485, 0.456, 0.406],
         std=[0.229, 0.224, 0.225]
@@ -167,13 +168,28 @@ def train_val_test_split(dataset, augmented=True, vit_transformed=True):
 
 
 # get dataloaders
-def get_dataloaders(batch_size=16, augmented=True, vit_transformed=True, show_sample=False):
+def get_dataloaders(batch_size=16, augmented=True, vit_transformed=True, show_sample=False, fraction=1.0):
     bmi_dataset = BMIDataset('../data/data.csv', '../data/Images', 'bmi', ToTensor())
     if show_sample:
         train_dataset, val_dataset, test_dataset = train_val_test_split(bmi_dataset, augmented, vit_transformed=False)
         show_sample_image(train_dataset)
     train_dataset, val_dataset, test_dataset = train_val_test_split(bmi_dataset, augmented, vit_transformed)
 
+    if fraction < 1.0:
+        train_indices = np.arange(len(train_dataset))
+        val_indices = np.arange(len(val_dataset))
+        test_indices = np.arange(len(test_dataset))
+        
+        # Shuffle and select a subset of indices
+        train_indices = np.random.choice(train_indices, int(fraction * len(train_indices)), replace=False)
+        val_indices = np.random.choice(val_indices, int(fraction * len(val_indices)), replace=False)
+        test_indices = np.random.choice(test_indices, int(fraction * len(test_indices)), replace=False)
+        
+        # Create subsets
+        train_dataset = Subset(train_dataset, train_indices)
+        val_dataset = Subset(val_dataset, val_indices)
+        test_dataset = Subset(test_dataset, test_indices)
+    
     train_loader = DataLoader(train_dataset, batch_size=batch_size,  shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size,  shuffle=False)

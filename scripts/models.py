@@ -1,12 +1,12 @@
 
 import torch
 import torch.nn as nn
-from torchvision.models import vit_h_14, ViT_H_14_Weights
+from torchvision.models import vit_b_16, ViT_B_16_Weights
 
 class BMIHead(nn.Module):
     def __init__(self):
         super(BMIHead, self).__init__()
-        self.linear1 = nn.Linear(1280, 640)
+        self.linear1 = nn.Linear(768, 640)
         self.linear2 = nn.Linear(640, 320)
         self.linear3 = nn.Linear(320, 160)
         self.linear4 = nn.Linear(160, 80)
@@ -31,12 +31,12 @@ class BMIHead(nn.Module):
 
 
 def get_model():
-    model = vit_h_14(weights='IMAGENET1K_SWAG_E2E_V1')
+    model = vit_b_16(weights='IMAGENET1K_SWAG_E2E_V1')
     for param in model.parameters():
         param.requires_grad = False
 
-    heads = BMIHead()
-    model.heads = heads
+    # heads = BMIHead()
+    # model.heads = heads
 
     return model
 
